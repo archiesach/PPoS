@@ -1,0 +1,111 @@
+---
+title: "Usage of PPoS package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{usecase_ppos}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+#### Install the package.
+
+```{r setup}
+library(ppos)
+```
+
+# PPoS calculations 
+
+  - PPoS given historical data on the same endpoint
+      - Using MAP (Meta-analystic predictive prior) Approach : **ppos_MAP()**
+      
+      
+  - PPoS given data from a surrogate endpoint **ppos_surrogate2()**
+
+## 1. PPoS calculations: PPoS given historical data on the same endpoint
+
+#### PPoS calculation at the planning stage of phase 3 study
+
+Given data ($Y_{obs}$) from the historical trials of similar drugs, we calculate the PPoS for the future endpoint $Y^*$.
+Import data from 27 historical studies and define user inputs such as estimated standard error of the future endpoint $\sigma_*= 0.1$, alpha and hypothesis $H_0: \theta =0$ vs $H_1: \theta < 0$, where $\theta=log(HR)$. 
+
+
+
+```{r}
+library(readr)
+
+
+
+ICBdemo_univariateOS <- read_csv("data/ICBdemo_univariateOS.csv",show_col_types = FALSE)
+df <- ICBdemo_univariateOS
+Hy.in <- df$logpfshr 
+Hy.se.in <- df$sd_lpfsHR1 
+input<- NULL
+
+# -------- User Inputs
+input$sigma.fs2 <- 0.1  # this is the estimate SE for the future outcome
+input$alternative2 <- "less"
+input$alpha2 <- 0.05
+
+# --------  # -------- # --------
+# -------- fit MAP model
+# --------  # -------- # --------
+
+out.jags <- ppos_MAP(Hy=Hy.in,
+                     Hy.se=Hy.se.in,
+                     tau.dist=NULL,
+                     tau.prior=NULL,
+                     alpha=as.numeric(input$alpha2),
+                     sigma.fs=input$sigma.fs2,
+                     alternative= input$alternative2 ,
+                     n.burnin=4000, n.iter=10000
+)
+
+ppos(out.jags)
+
+```
+```{r}
+forestplot3(out.jags)
+```
+
+
+
+
+## 2. PPoS calculations: PPoS given data from a surrogate endpoint
+
+Given the information on the surrogate endpoint (PFS), in the ongoing study, we calculate the PPoS for the yet to be observed final endpoint OS. Observed treatment effect is $exp(-0.36)=0.7$ i.e., a PFS HR=0.7 was observed, with an estimated standard error of 0.1. Let us consider a standard error of $\sigma_* =0.1$ for the future endpoint. We consider a HalfNormal$(0,0.65)$ prior on the between-study correlation coefficient $\rho$ with a constant within- study correlation $r=0.5$ across all studies. Similarly $r$ can be considered as any other value estimated from the given data. How to estimate $r$ is discussed in our manuscript.
+
+```{r}
+ICBdemo_bivariate <- read_csv("data/ICBdemo_bivariate.csv",show_col_types = FALSE)
+head(ICBdemo_bivariate)
+df <- ICBdemo_bivariate
+Hy.in <- cbind(df$logoshr,df$logpfshr)
+Hy.se.in <- cbind(df$sd_lOSHR1,df$sd_lpfsHR1)
+
+```
+
+```{r}
+out <- ppos_surrogate2(Hy=Hy.in,
+                     Hy.se=Hy.se.in,
+                     rho.hat=0.5,
+                     tau.dist="HalfNormal", # Uniform, InvGamma
+                     tau.prior=c(0,0.5),
+                     alpha=0.05,
+                     X.cs= -0.36, # This can be varied over a sequence
+                     sigma.fs=0.1,
+                     sigma.cs=0.1,
+                     alternative = c("less"),
+                     n.burnin=4000, n.iter=10000)
+ppos(out)
+res <- data.frame(c("rho","Y.star"),round(c(out["rho",1],out["Tf",1]),4))
+colnames(res) <- c("","")
+res
+```
+The estimated between-study correlation is 0.89 and the predicted overall survival HR = 0.69.
+

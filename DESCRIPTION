@@ -1,0 +1,21 @@
+Package: ppos
+Title: Calculates predictive probability of success (PPoS) for making a go-no-go decision
+Imports: 
+        R2jags,
+        meta,
+        assertthat,
+        forestplot,
+        dplyr,
+        stringr
+Version: 1.0.0
+Author: Archie Sachdeva <archiesachdeva.uf@gmail.com>
+Maintainer: Archie Sachdeva <archiesachdeva.uf@gmail.com>
+Description: This package computes predictive probability (PPoS) of future trial success given data from the historical trials on similar drugs or treatments.
+License: GPL (>= 2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

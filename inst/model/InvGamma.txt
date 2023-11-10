@@ -1,0 +1,39 @@
+model{
+  for(i in 1:(I-1)){
+        thet.hat[i,1:2] ~ dmnorm(theta[i,],prec.hat[i,,])
+        theta[i,1:2] ~ dmnorm(eta[],prec.Sigma[,])
+  }
+
+  eta[1] ~ dnorm(0,v)
+  eta[2] ~ dnorm(0,v)
+  v <- pow(1000,-2)
+
+  s12 <- Sigma.curr[1,2]
+  s11 <- Sigma.curr[1,1]
+  s22 <- Sigma.curr[2,2]
+
+  thet.hat[I,2] ~ dnorm(eta[2],1/s11)
+
+  Tf.mean <- eta[1] + (s12/s22) *(thet.hat[I,2]-eta[2])
+  Tf.var <- s11 - (s12^2/s22)
+  thet.hat[I,1] ~ dnorm(Tf.mean, 1/Tf.var)
+
+
+  prec.Sigma[1:2,1:2] <- inverse(Sigma[,])
+  Sigma[1,1] <- sig1
+  Sigma[1,2] <- rho * sqrt(sig1 * sig2)
+  Sigma[2,1] <- rho * sqrt(sig1 * sig2)
+  Sigma[2,2] <- sig2
+  s1 ~ dgamma(tau.prior[1],tau.prior[2])
+  s2 ~ dgamma(tau.prior[1],tau.prior[2])
+  sig1 = 1/s1
+  sig2 = 1/s2
+  rho ~  dunif(-1,1)
+
+  # PPOS
+  Tf <- thet.hat[I,1]
+  #ppos <- 1-step(Tf-delta)
+  step.fn <- step(Tf-delta)
+  indicator <- alternative
+  ppos <- ((1-step.fn) * indicator) + (step.fn * (1 - indicator))
+}

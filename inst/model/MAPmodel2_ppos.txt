@@ -1,0 +1,26 @@
+model{
+
+     for(k in 1:K){
+     tau2.k[k] <- 1/sigma2.k[k]
+     		  }
+     for(k in 1:K){
+			X.k[k] ~ dnorm(t.star[k], tau2.k[k])
+			t.star[k] ~ dnorm(t, tau2.DS)
+                  }
+
+### Priors for t (overall mean)   
+      t ~ dnorm(t0, tau2.0)
+
+	# PPOS
+	Tf = X.k[K]
+	#ppos <- 1-step(Tf-delta)
+	step.fn <- step(Tf-delta)
+  indicator <- alternative
+  ppos <- ((1-step.fn) * indicator) + (step.fn * (1 - indicator))
+	for(k in 1:K){
+	CPOinv[k] <- sqrt(2*3.14159/tau2.k[k])*exp(0.5*tau2.k[k]*pow(X.k[k]-t.star[k],2))
+	#log.lik[k] <- -0.5 * log(2*pi*sigma2.k[k]) - (0.5 * (X.k[k]-t.star[k])^2/sigma2.k[x])
+	}
+	
+	
+     }
